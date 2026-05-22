@@ -480,7 +480,7 @@ If you use DeepAL6 in your research, please cite:
   title        = {DeepAL6: A Deep Active Learning Library for Tabular and Image Domains},
   year         = {2025},
   publisher    = {GitHub},
-  howpublished = {\url{https://github.com/YOUR_USERNAME/deepal6}},
+  howpublished = {\url{https://github.com/bob-aila/deepal6}},
   note         = {AIMS Rwanda Master's Thesis}
 }
 ```

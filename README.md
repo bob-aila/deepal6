@@ -494,12 +494,6 @@ If you use DeepAL6 in your research, please cite:
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
-<<<<<<< HEAD
-
-<p align="center">
-  Built with ❤️ at AIMS Rwanda · 2025
-=======
 <p align="center">
   Lest save the budgets by Labeling data informatively.
->>>>>>> 3b137045c50a6e3c636d2cf719e231cf28b44d38
 </p>

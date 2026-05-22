@@ -11,7 +11,7 @@ setup(
     ),
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/bobphilip/deepal6",
+    url="https://github.com/bob-aila/deepal6",
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=[

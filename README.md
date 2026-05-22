@@ -476,7 +476,7 @@ If you use DeepAL6 in your research, please cite:
 
 ```bibtex
 @misc{aila2025deepal6,
-  author       = {Aila, Bob Philip},
+  authors      = {Bob Philip Aila, Yae Gaba},
   title        = {DeepAL6: A Deep Active Learning Library for Tabular and Image Domains},
   year         = {2025},
   publisher    = {GitHub},

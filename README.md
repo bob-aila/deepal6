@@ -67,7 +67,7 @@ pip install "deepal6[image]"
 ### Development install (editable, from source)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/deepal6.git
+git clone https://github.com/bob-aila/deepal6.git
 cd deepal6
 pip install -e .
 

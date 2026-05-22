@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepal"
+version = "1.0.0"
+description = "Deep Active Learning — 6 query strategies vs random baseline (AIMS Rwanda Thesis)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "Bob Philip Aila"}]
+keywords = ["active learning", "deep learning", "machine learning", "uncertainty sampling"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.21",
+    "torch>=1.12",
+    "scikit-learn>=1.0",
+    "matplotlib>=3.4",
+]
+
+[project.optional-dependencies]
+image = ["torchvision>=0.13", "Pillow>=9.0"]
+dev   = ["pytest>=7.0", "pytest-cov", "twine", "build"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["deepal*"]

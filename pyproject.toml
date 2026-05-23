@@ -1,19 +1,19 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepal6"
 version = "1.0.3"
-description = "DeepAL6 — Deep Active Learning — 6 query strategies vs random baseline (AIMS Rwanda Thesis)"
+description = "DeepAL6 — Deep Active Learning Library for Tabular and Image Domains"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
+license = "MIT"
 authors = [{name = "Bob Philip Aila"}]
 keywords = ["active learning", "deep learning", "machine learning", "uncertainty sampling"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [

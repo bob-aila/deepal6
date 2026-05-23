@@ -121,8 +121,8 @@ data = TabularDataModule(X_train, y_train, X_test, y_test, pos_label=0)
 config = ALConfig(
     strategy     = ['Random', 'Entropy', 'BALD', 'CoreSet', 'BADGE'],
     initial_size = 50,    # stratified initial labeled set
+    budget       = 450,   # total labelling budget (n_rounds computed automatically)
     batch_size   = 20,    # samples queried per round
-    n_rounds     = 20,    # AL rounds
     n_seeds      = 5,     # independent runs for mean ± std
     train_epochs = 50,
 )
@@ -204,7 +204,7 @@ test_tf = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
 
-# -- Wrap numpy arrays as a deepal6-compatible Dataset -----------------------
+# Wrap numpy arrays as a deepal6-compatible Dataset
 class NumpyImageDataset(Dataset):
     def __init__(self, images, labels, transform=None):
         # images: float32 in [0,1] or uint8 — both handled
@@ -226,7 +226,7 @@ class NumpyImageDataset(Dataset):
     def get_labels(self):                         # required by deepal6
         return self._labels
 
-# -- Example: MedMNIST -------------------------------------------------------
+# Example: MedMNIST
 import medmnist
 from medmnist import INFO
 
@@ -247,12 +247,12 @@ data = ImageDataModule(
     num_workers = 0,    # always 0 in notebooks and on macOS
 )
 
-# -- Configure and run -------------------------------------------------------
+# Configure and run
 config = ALConfig(
     strategy     = ['Random', 'BALD', 'CoreSet', 'BADGE'],
     initial_size = 50,
+    budget       = 450,   # n_rounds computed as floor((450-50)/20) = 20
     batch_size   = 20,
-    n_rounds     = 20,
     n_seeds      = 3,
     train_epochs = 10,
     lr           = 1e-4,
@@ -291,8 +291,8 @@ from deepal6 import ALConfig
 config = ALConfig(
     strategy         = ['Random', 'BALD'],  # or a single string: 'BALD'
     initial_size     = 50,
+    budget           = 450,   #n_rounds computed automatically
     batch_size       = 20,
-    n_rounds         = 20,
     n_seeds          = 5,
     train_epochs     = 50,
     lr               = 1e-3,
@@ -307,7 +307,7 @@ config = ALConfig(
     checkpoint_dir   = './checkpoints',
 )
 print(config.summary())        # prints a formatted parameter table
-print(config.total_budget)     # initial_size + n_rounds * batch_size
+print(config.total_budget)     # effective labels used (may differ from budget if remainder)
 ```
 
 | Parameter | Default | Description |
@@ -315,7 +315,8 @@ print(config.total_budget)     # initial_size + n_rounds * batch_size
 | `strategy` | all 6 | Strategy name(s) to run |
 | `initial_size` | 50 | Stratified initial labeled set size |
 | `batch_size` | 20 | Samples queried per AL round |
-| `n_rounds` | 20 | Maximum AL rounds |
+| `budget` | None | Total labelling budget — sets n_rounds automatically via `floor((budget - initial_size) / batch_size)` |
+| `n_rounds` | 20 | AL rounds — set directly if not using budget (legacy API, still supported) |
 | `n_seeds` | 5 | Independent runs per strategy (for mean ± std) |
 | `train_epochs` | 50 | Training epochs per round |
 | `lr` | 1e-3 | Adam learning rate |
@@ -406,7 +407,7 @@ from deepal6.plotting import plot_batch_size_ablation
 
 ablation = {}
 for b in [10, 20, 50]:
-    cfg = ALConfig(strategy='BALD', batch_size=b, n_seeds=3)
+    cfg = ALConfig(strategy='BALD', budget=450, batch_size=b, n_seeds=3)
     r   = ActiveLearner(data, cfg).run()
     ablation[b] = r['BALD']
 

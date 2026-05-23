@@ -167,7 +167,8 @@ class ImageDataModule(BaseDataModule):
     pos_label : int
         Positive (minority) class label for recall computation. Default: 1.
     num_workers : int
-        DataLoader worker count. Default: 2.
+        DataLoader worker count. Default: 0 (safe for notebooks and macOS).
+        Set to 2-4 only when running as a standalone script for faster loading.
     device : str or None
         'cpu', 'cuda', or None (auto-detect). Default: None.
     dropout_rate : float
@@ -201,7 +202,7 @@ class ImageDataModule(BaseDataModule):
         test_transform=None,
         img_size: int = 256,
         pos_label: int = 1,
-        num_workers: int = 0
+        num_workers: int = 0,
         device: Optional[str] = None,
         dropout_rate: float = 0.4,
     ):

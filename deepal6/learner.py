@@ -284,22 +284,6 @@ class ActiveLearner:
 
             # Evaluate on held-out test set
             metrics = self.data.evaluate(model)
-            labeled_counts.append(len(labeled_idx))
-            accuracies.append(metrics["accuracy"])
-            aucs.append(metrics["auc"])
-            bal_accs.append(metrics["bal_acc"])
-            recalls.append(metrics["recall"])
-            ece_scores.append(metrics["ece"])
-
-            if cfg.verbose:
-                print(
-                    f"  [{strategy_name}] Round {round_t+1:2d} | "
-                    f"n={len(labeled_idx):4d} | "
-                    f"AUC={metrics['auc']:.4f} | "
-                    f"BalAcc={metrics['bal_acc']:.4f} | "
-                    f"Recall={metrics['recall']:.4f} | "
-                    f"ECE={metrics['ece']:.4f}"
-                )
 
             # Query strategy
             n_query = min(cfg.batch_size, len(unlabeled_idx))
@@ -327,6 +311,24 @@ class ActiveLearner:
             labeled_idx.extend(queried_global)
             for i in sorted(local_indices, reverse=True):
                 unlabeled_idx.pop(i)
+
+            # Record after querying — n reflects labels used this round
+            labeled_counts.append(len(labeled_idx))
+            accuracies.append(metrics["accuracy"])
+            aucs.append(metrics["auc"])
+            bal_accs.append(metrics["bal_acc"])
+            recalls.append(metrics["recall"])
+            ece_scores.append(metrics["ece"])
+
+            if cfg.verbose:
+                print(
+                    f"  [{strategy_name}] Round {round_t+1:2d} | "
+                    f"n={len(labeled_idx):4d} | "
+                    f"AUC={metrics['auc']:.4f} | "
+                    f"BalAcc={metrics['bal_acc']:.4f} | "
+                    f"Recall={metrics['recall']:.4f} | "
+                    f"ECE={metrics['ece']:.4f}"
+                )
 
             # Optional checkpoint
             if cfg.save_checkpoints:

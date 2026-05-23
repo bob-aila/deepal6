@@ -38,7 +38,7 @@ from deepal6.exceptions import (
     ModelError,
 )
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __author__ = "Bob Philip Aila — AIMS Rwanda"
 
 __all__ = [

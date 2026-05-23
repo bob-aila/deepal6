@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepal6"
-version = "1.0.3"
+version = "1.0.4"
 description = "DeepAL6 — Deep Active Learning Library for Tabular and Image Domains"
 readme = "README.md"
 requires-python = ">=3.8"

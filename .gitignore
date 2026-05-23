@@ -1,1 +1,28 @@
+# macOS
 .DS_Store
+
+# Jupyter / notebooks
+Untitled.ipynb
+
+# Instructions / docs to exclude
+INSTRUCTIONS.md
+
+# Pytest cache
+.pytest_cache/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+deepal6.egg-info/
+
+# Editor dirs
+.vscode/
+.idea/
+
+# Optional: local environment
+.env

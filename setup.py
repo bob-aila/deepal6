@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="deepal6",
-    version="1.0.0",
+    version="1.0.1",
     author="Bob Philip Aila",
     author_email="",
     description=(
-        "Deep Active Learning library — 6 query strategies vs. random baseline, "
+        "Deep Active Learning library — 5 initial query strategies vs. random baseline, "
         "for tabular and image domains (AIMS Rwanda Thesis)"
     ),
     long_description=open("README.md").read(),

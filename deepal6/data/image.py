@@ -201,7 +201,7 @@ class ImageDataModule(BaseDataModule):
         test_transform=None,
         img_size: int = 256,
         pos_label: int = 1,
-        num_workers: int = 2,
+        num_workers: int = 0
         device: Optional[str] = None,
         dropout_rate: float = 0.4,
     ):

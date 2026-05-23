@@ -58,7 +58,7 @@
 pip install deepal6
 ```
 
-### With image support (ResNet-18 / NIH Chest X-ray)
+### With image support (ResNet-18 / NIH Chest X-ray / MedMNIST)
 
 ```bash
 pip install "deepal6[image]"
@@ -140,16 +140,22 @@ learner.summary_table(results)
 
 ### Image (NIH Chest X-ray / any binary image dataset)
 
+#### A) Images on disk — DataFrame with filepath + label columns
+
 ```python
 import pandas as pd
 from deepal6 import ActiveLearner, ImageDataModule, ALConfig
-
-# DataFrame with 'filepath' and 'label' columns
-train_df = pd.DataFrame({'filepath': [...], 'label': [0, 1, ...]})
-test_df  = pd.DataFrame({'filepath': [...], 'label': [0, 1, ...]})
-
-# Optional: custom augmentations
 from torchvision import transforms
+
+train_df = pd.DataFrame({
+    'filepath': ['/data/train/img001.png', ...],
+    'label':    [0, 1, ...]
+})
+test_df = pd.DataFrame({
+    'filepath': ['/data/test/img100.png', ...],
+    'label':    [1, ...]
+})
+
 my_aug = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.RandomHorizontalFlip(),
@@ -163,23 +169,100 @@ data = ImageDataModule(
     train_df, test_df,
     train_transform = my_aug,
     img_size        = 256,
-    pos_label       = 1,        # minority / positive class
+    pos_label       = 1,
+)
+```
+
+#### B) In-memory arrays — MedMNIST / numpy arrays
+
+When your images are already loaded into memory (e.g. MedMNIST, numpy arrays),
+wrap them in a `NumpyImageDataset` and apply the transform **inside** the Dataset.
+Also set `num_workers=0` in notebooks and on macOS.
+
+```python
+import numpy as np
+from torch.utils.data import Dataset
+from PIL import Image
+from torchvision import transforms
+from sklearn.model_selection import train_test_split
+from deepal6 import ActiveLearner, ImageDataModule, ALConfig
+
+# -- Define transform (must convert PIL → tensor) ----------------------------
+my_aug = transforms.Compose([
+    transforms.Grayscale(num_output_channels=3),   # handles grayscale images
+    transforms.Resize((64, 64)),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(10),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+
+test_tf = transforms.Compose([
+    transforms.Grayscale(num_output_channels=3),
+    transforms.Resize((64, 64)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+
+# -- Wrap numpy arrays as a deepal6-compatible Dataset -----------------------
+class NumpyImageDataset(Dataset):
+    def __init__(self, images, labels, transform=None):
+        # images: float32 in [0,1] or uint8 — both handled
+        if images.dtype != np.uint8:
+            images = (images * 255).clip(0, 255).astype(np.uint8)
+        self.images    = images
+        self._labels   = labels.astype(int)
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img = Image.fromarray(self.images[idx])   # PIL Image
+        if self.transform:
+            img = self.transform(img)             # → tensor
+        return img, int(self._labels[idx])
+
+    def get_labels(self):                         # required by deepal6
+        return self._labels
+
+# -- Example: MedMNIST -------------------------------------------------------
+import medmnist
+from medmnist import INFO
+
+info   = INFO['bloodmnist']
+DClass = getattr(medmnist, info['python_class'])
+parts  = [DClass(split=s, download=True) for s in ('train', 'val', 'test')]
+imgs   = np.concatenate([p.imgs for p in parts]).astype(np.float32) / 255.0
+labels = np.concatenate([p.labels.squeeze() for p in parts])
+labels = (labels >= 4).astype(int)   # binarise
+
+X_train, X_test, y_train, y_test = train_test_split(
+    imgs, labels, test_size=0.2, stratify=labels, random_state=42)
+
+data = ImageDataModule(
+    NumpyImageDataset(X_train, y_train, transform=my_aug),
+    NumpyImageDataset(X_test,  y_test,  transform=test_tf),
+    pos_label   = 1,
+    num_workers = 0,    # always 0 in notebooks and on macOS
 )
 
+# -- Configure and run -------------------------------------------------------
 config = ALConfig(
     strategy     = ['Random', 'BALD', 'CoreSet', 'BADGE'],
     initial_size = 50,
     batch_size   = 20,
     n_rounds     = 20,
-    n_seeds      = 5,
-    train_epochs = 10,          # fewer epochs — fine-tuning pretrained weights
-    lr           = 1e-4,        # lower LR for ResNet-18
+    n_seeds      = 3,
+    train_epochs = 10,
+    lr           = 1e-4,
     dropout_rate = 0.4,
 )
 
 learner = ActiveLearner(data, config)
 results = learner.run()
 learner.plot(results, metric='auc', show_std=True)
+learner.summary_table(results, metric='auc')
 ```
 
 ---
@@ -258,8 +341,8 @@ learner.plot(results, metric='bal_acc')      # Balanced accuracy
 learner.plot(results, metric='recall')       # Recall (minority class)
 learner.plot(results, metric='ece')          # Calibration error
 
-# Strategy vs random gap (automatically shown when 'Random' is in results)
-# — positive gap means the strategy beats random at that budget point
+# Strategy vs random gap — shown automatically when 'Random' is in results
+# Positive gap = strategy beats random at that budget point
 
 # ECE calibration detail
 learner.plot_calibration(results)
@@ -300,8 +383,7 @@ def my_strategy(model, data, pool_idx, n_query, **kwargs):
     -------
     np.ndarray of LOCAL indices into pool_idx (not global indices)
     """
-    probs = data.predict_proba(model, pool_idx)
-    # your selection logic here ...
+    probs  = data.predict_proba(model, pool_idx)
     scores = np.abs(probs - 0.5)
     return np.argsort(scores)[:n_query]
 
@@ -316,7 +398,7 @@ results = ActiveLearner(data, config).run()
 
 ## Batch Size Ablation
 
-Study how query batch size affects learning efficiency for your best strategy:
+Study how query batch size affects learning efficiency:
 
 ```python
 from deepal6 import ActiveLearner, ALConfig
@@ -337,84 +419,52 @@ plot_batch_size_ablation(ablation, metric='auc')
 
 ### Tabular
 
-`TabularDataModule` requires **numpy arrays**. Here is how to convert from every common source:
+`TabularDataModule` requires **numpy arrays**:
 
 ```python
-# From a CSV file
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 from deepal6 import TabularDataModule
 
 df = pd.read_csv('your_data.csv')
-df['label'] = df['label'].map({'Good': 1, 'Bad': 0})   # encode target to 0/1
+df['label'] = df['label'].map({'Good': 1, 'Bad': 0})
 for col in df.select_dtypes(include='object').columns:
     if col != 'label':
         df[col] = LabelEncoder().fit_transform(df[col])
 
-X = df.drop('label', axis=1).values   # .values → numpy
+X = df.drop('label', axis=1).values
 y = df['label'].values
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
 scaler  = StandardScaler()
-X_train = scaler.fit_transform(X_train)   # fit on train only — no leakage
+X_train = scaler.fit_transform(X_train)
 X_test  = scaler.transform(X_test)
 
 data = TabularDataModule(X_train, y_train, X_test, y_test)
 ```
 
-| Source | One-liner |
+| Source | How to convert |
 |---|---|
-| pandas DataFrame | `X_train_df.values` |
-| PyTorch tensor | `X_train_tensor.numpy()` |
+| pandas DataFrame | `.values` on X and y columns |
+| PyTorch tensor | `.numpy()` first |
 | sklearn dataset | `bunch.data`, `bunch.target` directly |
 | `.npy` / `.npz` file | `np.load('file.npz')['X_train']` |
 
 ### Image
 
-`ImageDataModule` accepts two formats:
+| Format | When to use |
+|---|---|
+| DataFrame with `filepath` + `label` | Images stored as files on disk |
+| `NumpyImageDataset` wrapper | Images already in memory (MedMNIST, numpy arrays) |
 
-**A) DataFrame with `filepath` + `label` columns** (images on disk):
+> **Important for notebooks and macOS:** always set `num_workers=0` in `ImageDataModule`.
+> Using `num_workers > 0` in notebooks causes a multiprocessing error because worker
+> processes cannot access classes defined interactively in notebook cells.
 
-```python
-import pandas as pd
-from deepal6 import ImageDataModule
-
-train_df = pd.DataFrame({
-    'filepath': ['/data/train/img001.png', ...],
-    'label':    [0, 1, ...]
-})
-data = ImageDataModule(train_df, test_df)
-```
-
-**B) Any PyTorch `Dataset` with a `.get_labels()` method** (in-memory / MedMNIST):
-
-```python
-from torch.utils.data import Dataset
-from PIL import Image
-from torchvision import transforms
-import numpy as np
-
-class NumpyImageDataset(Dataset):
-    def __init__(self, images, labels):
-        self.images  = images.astype(np.uint8)
-        self._labels = labels.astype(int)
-        self.tf = transforms.Compose([
-            transforms.Resize((64, 64)),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5]*3, [0.5]*3),
-        ])
-    def __len__(self): return len(self.images)
-    def __getitem__(self, i):
-        return self.tf(Image.fromarray(self.images[i])), int(self._labels[i])
-    def get_labels(self):   # ← required by deepal6
-        return self._labels
-
-data = ImageDataModule(
-    NumpyImageDataset(X_train_imgs, y_train),
-    NumpyImageDataset(X_test_imgs,  y_test),
-)
-```
+> **Important for in-memory datasets:** the transform (PIL → tensor conversion) must live
+> **inside** your Dataset's `__getitem__`, not in `ImageDataModule(train_transform=...)`.
+> The `train_transform` parameter is only for the DataFrame/filepath approach.
 
 ---
 
@@ -467,6 +517,8 @@ deepal6/
 | `StrategyError: no Dropout layers` | BALD with `dropout_rate=0` | Set `dropout_rate > 0` (default: 0.3) |
 | `ImportError: torchvision` | Image support not installed | `pip install "deepal6[image]"` |
 | `DataError: missing get_labels()` | Custom Dataset missing method | Add `def get_labels(self): return self._labels` |
+| `batch must contain tensors ... PIL.Image` | Transform not applied in `__getitem__` | Move transform inside your Dataset class (see Image section above) |
+| `Can't get attribute on __main__` | `num_workers > 0` in notebook/macOS | Set `num_workers=0` in `ImageDataModule` |
 
 ---
 
@@ -476,7 +528,7 @@ If you use DeepAL6 in your research, please cite:
 
 ```bibtex
 @misc{aila2025deepal6,
-  authors      = {Bob Philip Aila, Yae Gaba},
+  author       = {Aila, Bob Philip and Gaba, Yae},
   title        = {DeepAL6: A Deep Active Learning Library for Tabular and Image Domains},
   year         = {2025},
   publisher    = {GitHub},
@@ -494,6 +546,7 @@ If you use DeepAL6 in your research, please cite:
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+
 <p align="center">
-  Lest save the budgets by Labeling data informatively.
+  Let's save the budgets by labelling data informatively.
 </p>

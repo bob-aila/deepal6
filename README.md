@@ -1,6 +1,5 @@
-<p align="center">
 # DeepAL6 — Deep Active Learning Library
-</p>
+
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.8%2B-blue" alt="Python">
   <img src="https://img.shields.io/badge/PyTorch-1.12%2B-orange" alt="PyTorch">

@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/python-3.8%2B-blue" alt="Python">
   <img src="https://img.shields.io/badge/PyTorch-1.12%2B-orange" alt="PyTorch">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/version-1.0.0-purple" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.0.4-purple" alt="Version">
   <img src="https://img.shields.io/badge/strategies-6-red" alt="Strategies">
 </p>
 
